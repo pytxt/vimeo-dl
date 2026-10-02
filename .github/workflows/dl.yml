@@ -1,0 +1,28 @@
+name: download-video
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Vimeo page URL, e.g. https://vimeo.com/123456789"
+        required: true
+
+jobs:
+  dl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install yt-dlp
+        run: python3 -m pip install -U yt-dlp
+
+      - name: Download
+        env:
+          URL: ${{ inputs.url }}
+        run: yt-dlp -f "bv*+ba/b" --merge-output-format mp4 -o "video-%(id)s.%(ext)s" "$URL"
+
+      - name: Upload file
+        uses: actions/upload-artifact@v4
+        with:
+          name: video
+          path: video-*
+          retention-days: 3
+          compression-level: 0
+          if-no-files-found: error
