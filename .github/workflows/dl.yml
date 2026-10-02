@@ -16,7 +16,7 @@ jobs:
       - name: Download
         env:
           URL: ${{ inputs.url }}
-        run: yt-dlp -f "bv*+ba/b" --merge-output-format mp4 -o "video-%(id)s.%(ext)s" "$URL"
+        run: yt-dlp --referer "https://vimeo.com/" -f "bv*+ba/b" --merge-output-format mp4 -o "video-%(id)s.%(ext)s" "$URL"
 
       - name: Upload file
         uses: actions/upload-artifact@v4
