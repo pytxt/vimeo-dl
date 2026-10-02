@@ -3,8 +3,11 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: "Vimeo page URL, e.g. https://vimeo.com/123456789"
+        description: "Direct file link, m3u8 link, or video page URL"
         required: true
+
+permissions:
+  contents: write
 
 jobs:
   dl:
@@ -16,13 +19,20 @@ jobs:
       - name: Download
         env:
           URL: ${{ inputs.url }}
-        run: yt-dlp --referer "https://vimeo.com/" -f "bv*+ba/b" --merge-output-format mp4 -o "video-%(id)s.%(ext)s" "$URL"
+        run: |
+          mkdir out && cd out
+          path="${URL%%\?*}"
+          ext="${path##*.}"
+          ext="${ext,,}"
+          case "$ext" in
+            mp4|mov|mkv|webm|m4v|mp3|m4a|wav|pdf|jpg|jpeg|png|gif|zip)
+              curl -fL --retry 3 -o "file-${GITHUB_RUN_NUMBER}.${ext}" "$URL" ;;
+            *)
+              yt-dlp --referer "https://vimeo.com/" -f "bv*+ba/b" --merge-output-format mp4 -o "video-%(id)s.%(ext)s" "$URL" ;;
+          esac
+          ls -la
 
-      - name: Upload file
-        uses: actions/upload-artifact@v4
-        with:
-          name: video
-          path: video-*
-          retention-days: 3
-          compression-level: 0
-          if-no-files-found: error
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ github.run_number }}" out/* --repo "${{ github.repository }}" --title "file ${{ github.run_number }}" --notes "downloaded"
